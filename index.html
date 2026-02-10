@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>IoT Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+  <h2>📡 IoT Monitor</h2>
+
+  <p>🌡️ Temperature: <span id="temp">--</span> °C</p>
+  <p>💧 Humidity: <span id="hum">--</span> %</p>
+  <p>📦 Object: <span id="obj">--</span></p>
+
+  <button onclick="buzzer(true)">🔊 Buzzer ON</button>
+  <button onclick="buzzer(false)">🔇 Buzzer OFF</button>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } 
+    from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  // 🔥 Firebase config (เอาจาก Firebase Console)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    databaseURL: "https://YOUR_PROJECT.firebaseio.com"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // 📥 อ่านข้อมูลจาก Firebase
+  onValue(ref(db, "sensor"), (snapshot) => {
+    const d = snapshot.val();
+    document.getElementById("temp").innerText = d.temperature;
+    document.getElementById("hum").innerText = d.humidity;
+    document.getElementById("obj").innerText = d.object ? "Detected" : "None";
+  });
+
+  // 📤 ส่งคำสั่งไป Firebase
+  window.buzzer = (state) => {
+    set(ref(db, "control/buzzer"), state);
+  }
+</script>
+</body>
+</html>
