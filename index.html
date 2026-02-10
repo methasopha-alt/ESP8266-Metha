@@ -3,43 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Home Dashboard Pro</title>
+    <title>Real-time Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --primary-gradient: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); }
-        body { font-family: 'Kanit', sans-serif; background: var(--primary-gradient); min-height: 100vh; margin: 0; color: white; display: flex; justify-content: center; align-items: center; }
-        .container { width: 90%; max-width: 450px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(15px); border-radius: 25px; padding: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); text-align: center; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .card { background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); }
-        .card.full { grid-column: span 2; }
-        .value { font-size: 24px; font-weight: 600; display: block; color: #fff; }
-        .label { font-size: 13px; opacity: 0.8; }
-        input { width: 80%; padding: 10px; border-radius: 10px; border: none; margin-bottom: 10px; font-family: 'Kanit'; }
-        button { width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; font-family: 'Kanit'; font-weight: 600; transition: 0.3s; margin-top: 5px; }
-        .btn-send { background: #2ecc71; color: white; }
-        .btn-fetch { background: #3498db; color: white; margin-top: 15px; }
-        .btn-send:active, .btn-fetch:active { transform: scale(0.95); }
+        body { font-family: 'Kanit', sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 400px; background: #1e1e1e; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .stat-card { background: #2d2d2d; padding: 15px; border-radius: 15px; margin-bottom: 15px; text-align: center; }
+        .value { font-size: 32px; font-weight: 600; color: #00d2ff; }
+        .label { font-size: 14px; color: #aaa; }
+        .status-badge { padding: 10px; border-radius: 10px; font-weight: 600; margin-top: 10px; display: inline-block; width: 100%; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: none; margin: 15px 0; background: #333; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-green { background: #2ecc71; color: white; margin-bottom: 10px; }
+        .btn-blue { background: #3498db; color: white; }
+        button:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin:0">Smart Home Display</h2>
-    <div id="time-display" style="font-size:14px; opacity:0.7">--:--:--</div>
+    <h2 style="text-align: center; margin-bottom: 5px;">Smart Home</h2>
+    <p id="time-txt" style="text-align: center; font-size: 12px; color: #888; margin-bottom: 20px;">--:--:--</p>
 
-    <div class="grid">
-        <div class="card"><span class="value" id="temp-val">--</span><span class="label">อุณหภูมิ (°C)</span></div>
-        <div class="card"><span class="value" id="humid-val">--</span><span class="label">ความชื้น (%)</span></div>
-        <div class="card full"><span class="value" id="obj-val">ปกติ</span><span class="label">สถานะวัตถุ</span></div>
-        
-        <div class="card full">
-            <span class="label">ส่งข้อความไปจอ LCD</span><br><br>
-            <input type="text" id="lcd-input" placeholder="พิมพ์ภาษาอังกฤษ...">
-            <button class="btn-send" onclick="sendToLCD()">ส่งข้อความ</button>
-        </div>
+    <div class="stat-card">
+        <div class="value" id="temp-txt">--</div>
+        <div class="label">อุณหภูมิ (°C)</div>
     </div>
 
-    <button class="btn-fetch" onclick="fetchWithSound()">🔔 กดเพื่อดึงข้อมูล (มีเสียงที่บอร์ด)</button>
+    <div class="stat-card">
+        <div class="value" id="humid-txt">--</div>
+        <div class="label">ความชื้น (%)</div>
+    </div>
+
+    <div id="obj-badge" class="status-badge" style="background: #333;">กำลังโหลดสถานะ...</div>
+
+    <input type="text" id="msg-input" placeholder="ส่งข้อความไปจอ LCD...">
+    <button class="btn-green" onclick="sendMsg()">ส่งข้อความ</button>
+    <button class="btn-blue" onclick="triggerBuzzer()">🔔 ทดสอบเสียงบัสเซอร์</button>
 </div>
 
 <script type="module">
@@ -55,32 +55,37 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ดึงข้อมูล Realtime
+    // ฟังค่า Sensor แบบ Real-time
     onValue(ref(db, 'sensor'), (snapshot) => {
         const data = snapshot.val();
-        document.getElementById('temp-val').innerText = data.temperature.toFixed(1);
-        document.getElementById('humid-val').innerText = data.humidity.toFixed(1);
-        document.getElementById('obj-val').innerText = data.object ? "⚠️ ตรวจพบวัตถุ!" : "ปกติ";
+        document.getElementById('temp-txt').innerText = data.temperature.toFixed(1);
+        document.getElementById('humid-txt').innerText = data.humidity.toFixed(1);
+        
+        const badge = document.getElementById('obj-badge');
+        if(data.object) {
+            badge.innerText = "🚨 ตรวจพบวัตถุ!";
+            badge.style.background = "#e74c3c";
+        } else {
+            badge.innerText = "✅ สถานะปกติ";
+            badge.style.background = "#27ae60";
+        }
     });
 
     onValue(ref(db, 'time'), (snapshot) => {
-        document.getElementById('time-display').innerText = "Update: " + snapshot.val();
+        document.getElementById('time-txt').innerText = "อัปเดตล่าสุด: " + snapshot.val();
     });
 
-    // ฟังก์ชันส่งข้อความไป LCD
-    window.sendToLCD = function() {
-        const msg = document.getElementById('lcd-input').value;
-        if(msg) {
-            set(ref(db, 'control/message'), msg);
-            alert("ส่งข้อความแล้ว!");
-        }
+    // ฟังก์ชันส่งข้อความ
+    window.sendMsg = () => {
+        const val = document.getElementById('msg-input').value;
+        if(val) set(ref(db, 'control/message'), val);
     };
 
-    // ฟังก์ชันกดดึงข้อมูลพร้อมสั่ง Buzzer ดัง
-    window.fetchWithSound = function() {
-        set(ref(db, 'control/trigger'), true); // ส่งค่า trigger ไปให้บอร์ดดัง
-        setTimeout(() => set(ref(db, 'control/trigger'), false), 500);
+    // ฟังก์ชันสั่งดัง Buzzer
+    window.triggerBuzzer = () => {
+        set(ref(db, 'control/trigger'), true);
     };
 </script>
+
 </body>
 </html>
