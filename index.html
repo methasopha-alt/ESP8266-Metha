@@ -3,44 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Smart Home Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Kanit', sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 400px; background: #1e1e1e; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .stat-card { background: #2d2d2d; padding: 15px; border-radius: 15px; margin-bottom: 15px; text-align: center; }
-        .value { font-size: 32px; font-weight: 600; color: #00d2ff; }
-        .label { font-size: 14px; color: #aaa; }
-        .status-badge { padding: 10px; border-radius: 10px; font-weight: 600; margin-top: 10px; display: inline-block; width: 100%; box-sizing: border-box; }
-        input { width: 100%; padding: 12px; border-radius: 10px; border: none; margin: 15px 0; background: #333; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-green { background: #2ecc71; color: white; margin-bottom: 10px; }
-        .btn-blue { background: #3498db; color: white; }
-        button:active { transform: scale(0.98); }
+        body { font-family: 'Kanit', sans-serif; background: #0f0c29; color: white; text-align: center; padding: 20px; }
+        .card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 20px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-refresh { background: #f1c40f; color: #000; }
+        .btn-music { background: #9b59b6; color: #fff; }
+        .btn-send { background: #2ecc71; color: #fff; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: none; margin-top: 10px; box-sizing: border-box; }
+        .val { font-size: 30px; color: #00d2ff; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 style="text-align: center; margin-bottom: 5px;">Smart Home</h2>
-    <p id="time-txt" style="text-align: center; font-size: 12px; color: #888; margin-bottom: 20px;">--:--:--</p>
-
-    <div class="stat-card">
-        <div class="value" id="temp-txt">--</div>
-        <div class="label">อุณหภูมิ (°C)</div>
+    <h2>Smart Control</h2>
+    <div class="card">
+        <div class="val" id="temp">--</div>
+        <div>อุณหภูมิ (°C)</div>
     </div>
 
-    <div class="stat-card">
-        <div class="value" id="humid-txt">--</div>
-        <div class="label">ความชื้น (%)</div>
+    <div class="card">
+        <div id="obj-status" style="padding:10px; border-radius:10px;">รอสถานะ...</div>
     </div>
 
-    <div id="obj-badge" class="status-badge" style="background: #333;">กำลังโหลดสถานะ...</div>
+    <div class="card">
+        <input type="text" id="msg-input" placeholder="พิมพ์ข้อความ LCD...">
+        <button class="btn btn-send" onclick="sendMsg()">ส่งข้อความ</button>
+        <button class="btn btn-refresh" onclick="location.reload()">🔄 รีเฟรชหน้าเว็บ</button>
+    </div>
 
-    <input type="text" id="msg-input" placeholder="ส่งข้อความไปจอ LCD...">
-    <button class="btn-green" onclick="sendMsg()">ส่งข้อความ</button>
-    <button class="btn-blue" onclick="triggerBuzzer()">🔔 ทดสอบเสียงบัสเซอร์</button>
-</div>
+    <button class="btn btn-music" onclick="playMusic()">🎵 เล่นเพลงที่บอร์ด</button>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.1/firebase-app.js";
@@ -55,37 +49,23 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ฟังค่า Sensor แบบ Real-time
-    onValue(ref(db, 'sensor'), (snapshot) => {
-        const data = snapshot.val();
-        document.getElementById('temp-txt').innerText = data.temperature.toFixed(1);
-        document.getElementById('humid-txt').innerText = data.humidity.toFixed(1);
-        
-        const badge = document.getElementById('obj-badge');
-        if(data.object) {
-            badge.innerText = "🚨 ตรวจพบวัตถุ!";
-            badge.style.background = "#e74c3c";
-        } else {
-            badge.innerText = "✅ สถานะปกติ";
-            badge.style.background = "#27ae60";
-        }
+    onValue(ref(db, 'sensor'), (snap) => {
+        const d = snap.val();
+        document.getElementById('temp').innerText = d.temperature.toFixed(1);
+        const obj = document.getElementById('obj-status');
+        obj.innerText = d.object ? "🚨 พบการเคลื่อนไหว!" : "✅ ปกติ";
+        obj.style.background = d.object ? "#e74c3c" : "#27ae60";
     });
 
-    onValue(ref(db, 'time'), (snapshot) => {
-        document.getElementById('time-txt').innerText = "อัปเดตล่าสุด: " + snapshot.val();
-    });
-
-    // ฟังก์ชันส่งข้อความ
     window.sendMsg = () => {
-        const val = document.getElementById('msg-input').value;
-        if(val) set(ref(db, 'control/message'), val);
+        const m = document.getElementById('msg-input').value;
+        if(m) set(ref(db, 'control/message'), m);
     };
 
-    // ฟังก์ชันสั่งดัง Buzzer
-    window.triggerBuzzer = () => {
-        set(ref(db, 'control/trigger'), true);
+    window.playMusic = () => {
+        set(ref(db, 'control/play_music'), true);
+        alert("กำลังส่งคำสั่งเล่นเพลง...");
     };
 </script>
-
 </body>
 </html>
