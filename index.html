@@ -1,49 +1,116 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>IoT Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP8266 Metha Monitor</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f0f2f5; }
+        .card { 
+            background: white; padding: 20px; margin: 10px auto; 
+            max-width: 400px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+        }
+        h1 { color: #333; }
+        .value { font-size: 2em; font-weight: bold; color: #007bff; }
+        .status { font-size: 1.2em; margin-top: 10px; }
+        .btn {
+            background-color: #ff4757; color: white; border: none; padding: 10px 20px;
+            font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 10px;
+        }
+        .btn.active { background-color: #2ed573; }
+    </style>
 </head>
-
 <body>
-  <h2>📡 IoT Monitor</h2>
 
-  <p>🌡️ Temperature: <span id="temp">--</span> °C</p>
-  <p>💧 Humidity: <span id="hum">--</span> %</p>
-  <p>📦 Object: <span id="obj">--</span></p>
+    <h1>📊 ข้อมูลจาก ESP8266</h1>
+    <p>เวลาล่าสุด: <span id="timeVal">--:--</span></p>
 
-  <button onclick="buzzer(true)">🔊 Buzzer ON</button>
-  <button onclick="buzzer(false)">🔇 Buzzer OFF</button>
+    <div class="card">
+        <h3>🌡️ อุณหภูมิ</h3>
+        <div class="value"><span id="tempVal">--</span> °C</div>
+    </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set } 
-    from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    <div class="card">
+        <h3>💧 ความชื้น</h3>
+        <div class="value"><span id="humidVal">--</span> %</div>
+    </div>
 
-  // 🔥 Firebase config (เอาจาก Firebase Console)
-  const firebaseConfig = {
-    apiKey: "AIzaSyBbHQNkBkWqG_WlMP1XdnZSo-JChTaNdl8",
-    databaseURL: "https://esp8266-metha-default-rtdb.firebaseio.com"
-  };
+    <div class="card">
+        <h3>🚨 ตรวจจับวัตถุ</h3>
+        <div class="value" id="objVal">--</div>
+    </div>
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+    <div class="card">
+        <h3>🎛️ ควบคุม Buzzer</h3>
+        <button id="btnBuzzer" class="btn" onclick="toggleBuzzer()">Buzzer OFF</button>
+    </div>
 
-  // 📥 อ่านข้อมูลจาก Firebase
-  onValue(ref(db, "sensor"), (snapshot) => {
-    const d = snapshot.val();
-    document.getElementById("temp").innerText = d.temperature;
-    document.getElementById("hum").innerText = d.humidity;
-    document.getElementById("obj").innerText = d.object ? "Detected" : "None";
-  });
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  // 📤 ส่งคำสั่งไป Firebase
-  window.buzzer = (state) => {
-    set(ref(db, "control/buzzer"), state);
-  }
-</script>
+        // ค่า Config จาก Arduino ของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbHQNkBkWqG_WlMP1XdnZSo-JChTaNdl8",
+            databaseURL: "https://esp8266-metha-default-rtdb.firebaseio.com"
+        };
+
+        // เริ่มต้น Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- ส่วนอ่านข้อมูล (Read) ---
+        
+        // 1. อุณหภูมิ (/sensor/temperature)
+        onValue(ref(db, 'sensor/temperature'), (snapshot) => {
+            document.getElementById('tempVal').innerText = snapshot.val() || 0;
+        });
+
+        // 2. ความชื้น (/sensor/humidity)
+        onValue(ref(db, 'sensor/humidity'), (snapshot) => {
+            document.getElementById('humidVal').innerText = snapshot.val() || 0;
+        });
+
+        // 3. วัตถุ (/sensor/object) - Arduino ส่งมาเป็น true/false
+        onValue(ref(db, 'sensor/object'), (snapshot) => {
+            const isObject = snapshot.val();
+            const el = document.getElementById('objVal');
+            if(isObject === true) {
+                el.innerText = "พบวัตถุ!";
+                el.style.color = "red";
+            } else {
+                el.innerText = "ปกติ";
+                el.style.color = "green";
+            }
+        });
+
+        // 4. เวลา (/time)
+        onValue(ref(db, 'time'), (snapshot) => {
+            document.getElementById('timeVal').innerText = snapshot.val() || "--:--";
+        });
+
+        // --- ส่วนควบคุม (Write) ---
+        
+        // อ่านสถานะ Buzzer ปัจจุบันเพื่ออัปเดตปุ่ม
+        let buzzerState = false;
+        onValue(ref(db, 'control/buzzer'), (snapshot) => {
+            buzzerState = snapshot.val();
+            const btn = document.getElementById('btnBuzzer');
+            if(buzzerState) {
+                btn.innerText = "Buzzer ON";
+                btn.classList.add('active');
+            } else {
+                btn.innerText = "Buzzer OFF";
+                btn.classList.remove('active');
+            }
+        });
+
+        // ฟังก์ชันสำหรับปุ่มกด (ต้องเอาไปแปะ global window เพื่อให้ html เรียกใช้ได้)
+        window.toggleBuzzer = function() {
+            // สลับค่า true/false แล้วส่งขึ้น Firebase
+            set(ref(db, 'control/buzzer'), !buzzerState);
+        }
+    </script>
 </body>
 </html>
-
-
