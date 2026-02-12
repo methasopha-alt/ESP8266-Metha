@@ -3,31 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Home Pro v3</title>
+    <title>Smart Home Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #00d2ff; --danger: #ff4757; --card-bg: rgba(255, 255, 255, 0.1); }
-        body { font-family: 'Kanit', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        :root { --accent: #00d2ff; --card-bg: rgba(30, 41, 59, 0.7); }
+        body { font-family: 'Kanit', sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; padding: 20px; }
         .container { width: 100%; max-width: 500px; }
-        .header { text-align: center; margin-bottom: 25px; }
-        #time-display { color: var(--accent); font-size: 0.9rem; letter-spacing: 1px; }
-
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 20px; padding: 25px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
         .full { grid-column: span 2; }
-        .val { font-size: 2.5rem; font-weight: 600; color: var(--accent); display: block; }
-        .label { font-size: 0.8rem; opacity: 0.7; text-transform: uppercase; }
-
-        .status-bar { padding: 15px; border-radius: 15px; font-weight: 600; margin-top: 15px; transition: 0.5s; }
-        .safe { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
-        .alert { background: rgba(255, 71, 87, 0.2); color: var(--danger); animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #1e293b; color: white; margin: 15px 0; box-sizing: border-box; }
+        .val { font-size: 2.8rem; font-weight: 600; color: var(--accent); display: block; }
+        .label { font-size: 0.9rem; opacity: 0.6; }
+        
+        .status-box { padding: 15px; border-radius: 12px; font-weight: 600; margin-bottom: 15px; }
+        .safe { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .alert { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #334155; color: white; margin-bottom: 15px; box-sizing: border-box; }
         .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; font-family: 'Kanit'; transition: 0.2s; }
-        .btn-main { background: var(--accent); color: #0f172a; grid-column: span 2; }
-        .btn-sub { background: #334155; color: white; }
+        button { padding: 12px; border-radius: 10px; border: none; font-family: 'Kanit'; cursor: pointer; transition: 0.2s; font-weight: 600; }
+        .btn-primary { background: var(--accent); color: #0f172a; grid-column: span 2; }
+        .btn-secondary { background: #475569; color: white; }
         button:active { transform: scale(0.95); }
     </style>
 </head>
@@ -35,21 +32,23 @@
 
 <div class="container">
     <div class="header">
-        <h1 style="margin:0">Home Console</h1>
-        <div id="time-display">Connecting...</div>
+        <h1>Home Console</h1>
+        <p id="update-time" style="color:var(--accent)">กำลังเชื่อมต่อ...</p>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="card"><span class="val" id="temp">--</span><span class="label">Temp °C</span></div>
-        <div class="card"><span class="val" id="humid">--</span><span class="label">Humid %</span></div>
+    <div class="grid">
+        <div class="card"><span class="val" id="temp">--</span><span class="label">TEMP °C</span></div>
+        <div class="card"><span class="val" id="humid">--</span><span class="label">HUMID %</span></div>
         
         <div class="card full">
-            <div id="obj-status" class="status-bar safe">✅ ระบบปกติ</div>
+            <div id="obj-status" class="status-box safe">✅ ระบบปกติ</div>
             <input type="text" id="msg-input" placeholder="พิมพ์ข้อความส่งหา LCD...">
+            
             <div class="btn-grid">
-                <button class="btn-main" onclick="sendMsg()">📤 ส่งข้อความ (Submit)</button>
-                <button class="btn-sub" onclick="playMusic()">🎵 เล่นเพลง</button>
-                <button class="btn-sub" onclick="resetLCD()">🧹 ล้างจอ LCD</button>
+                <button class="btn-primary" onclick="sendMsg()">📤 ส่งข้อความ (Submit)</button>
+                <button class="btn-secondary" onclick="playMusic()">🎵 เล่นเพลง</button>
+                <button class="btn-secondary" onclick="resetLCD()">🧹 ล้างจอ LCD</button>
+                <button class="btn-secondary" style="grid-column: span 2;" onclick="location.reload()">🔄 รีเฟรชหน้า Dashboard</button>
             </div>
         </div>
     </div>
@@ -61,34 +60,38 @@
 
     const firebaseConfig = {
         apiKey: "AIzaSyBbHQNkBkWqG_WlMP1XdnZSo-JChTaNdl8",
-        databaseURL: "https://esp8266-metha-default-rtdb.firebaseio.com",
-        projectId: "esp8266-metha"
+        databaseURL: "https://esp8266-metha-default-rtdb.firebaseio.com"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    onValue(ref(db, 'sensor'), (snap) => {
-        const d = snap.val();
-        if(d) {
-            document.getElementById('temp').innerText = d.temperature.toFixed(1);
-            document.getElementById('humid').innerText = d.humidity.toFixed(1);
-            const status = document.getElementById('obj-status');
-            status.innerText = d.object ? "🚨 ตรวจพบวัตถุ!" : "✅ ระบบปกติ";
-            status.className = "status-bar " + (d.object ? "alert" : "safe");
+    // รับค่าจาก Sensor
+    onValue(ref(db, 'sensor'), (snapshot) => {
+        const data = snapshot.val();
+        if(data) {
+            document.getElementById('temp').innerText = data.temperature.toFixed(1);
+            document.getElementById('humid').innerText = data.humidity.toFixed(1);
+            const statusBox = document.getElementById('obj-status');
+            statusBox.innerText = data.object ? "🚨 ตรวจพบวัตถุ!" : "✅ ระบบปกติ";
+            statusBox.className = "status-box " + (data.object ? "alert" : "safe");
         }
     });
 
-    onValue(ref(db, 'time'), (snap) => {
-        if(snap.val()) document.getElementById('time-display').innerText = "Update: " + snap.val();
+    onValue(ref(db, 'time'), (snapshot) => {
+        if(snapshot.val()) document.getElementById('update-time').innerText = "Update: " + snapshot.val();
     });
 
+    // ฟังชันปุ่มกด
     window.sendMsg = () => {
-        const m = document.getElementById('msg-input').value;
-        if(m) set(ref(db, 'control/message'), m);
+        const msg = document.getElementById('msg-input').value;
+        if(msg) set(ref(db, 'control/message'), msg);
     };
+
     window.playMusic = () => set(ref(db, 'control/play_music'), true);
+
     window.resetLCD = () => {
+        set(ref(db, 'control/message'), "");
         set(ref(db, 'control/reset_lcd'), true);
         document.getElementById('msg-input').value = "";
     };
