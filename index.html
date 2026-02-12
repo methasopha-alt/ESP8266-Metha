@@ -3,26 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Home Monitor</title>
+    <title>Home Monitor Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #06b6d4; --bg: #0f172a; --card: rgba(30, 41, 59, 0.8); }
+        :root { --accent: #22d3ee; --bg: #0f172a; }
         body { font-family: 'Kanit', sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; }
         .container { width: 100%; max-width: 450px; }
-        .card { background: var(--card); border-radius: 20px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; text-align: center; }
-        .val { font-size: 3.5rem; font-weight: 600; color: var(--accent); line-height: 1; }
-        .label { font-size: 0.9rem; opacity: 0.6; margin-top: 5px; }
-        
+        .card { background: rgba(30, 41, 59, 0.8); border-radius: 20px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; text-align: center; backdrop-filter: blur(10px); }
+        .val { font-size: 3.5rem; font-weight: 600; color: var(--accent); }
+        .label { font-size: 0.9rem; opacity: 0.6; }
         .status { padding: 12px; border-radius: 12px; font-weight: 600; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
         .normal { background: rgba(16, 185, 129, 0.1); color: #10b981; }
         .detected { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-
         input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 15px; box-sizing: border-box; font-family: 'Kanit'; }
-        
-        .btn-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        button { padding: 14px; border-radius: 12px; border: none; font-family: 'Kanit'; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: #0f172a; }
-        .btn-outline { background: transparent; border: 1px solid #334155; color: #94a3b8; }
+        button { width: 100%; padding: 14px; border-radius: 12px; border: none; font-family: 'Kanit'; cursor: pointer; font-weight: 600; margin-bottom: 10px; transition: 0.2s; }
+        .btn-main { background: var(--accent); color: #0f172a; }
+        .btn-sub { background: transparent; border: 1px solid #334155; color: #94a3b8; }
         button:active { transform: scale(0.98); }
     </style>
 </head>
@@ -30,25 +26,22 @@
 
 <div class="container">
     <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="margin:0; letter-spacing: 1px;">MY SMART HOME</h1>
-        <p id="time-sync" style="color:var(--accent); font-size: 0.9rem;">กำลังซิงค์เวลา...</p>
+        <h1 style="margin:0;">SMART MONITOR</h1>
+        <p id="time" style="color:var(--accent); font-size: 0.9rem;">กำลังซิงค์...</p>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-        <div class="card"><div class="val" id="temp">--</div><div class="label">องศาเซลเซียส</div></div>
-        <div class="card"><div class="val" id="humid">--</div><div class="label">ความชื้น %</div></div>
+        <div class="card"><div class="val" id="temp">--</div><div class="label">TEMP °C</div></div>
+        <div class="card"><div class="val" id="humid">--</div><div class="label">HUMID %</div></div>
     </div>
 
     <div class="card">
-        <div id="status-text" class="status normal">✅ ระบบปกติ</div>
-        <input type="text" id="lcd-msg" placeholder="ส่งข้อความไปที่หน้าจอ...">
-        
-        <div class="btn-grid">
-            <button class="btn-primary" onclick="sendToLCD()">📤 อัปเดตหน้าจอ LCD</button>
-            <button class="btn-outline" onclick="resetLCD()">🧹 ล้างข้อความบนจอ</button>
-            <button class="btn-outline" onclick="speakNow()">🔊 อ่านค่าอุณหภูมิ (ภาษาไทย)</button>
-            <button class="btn-outline" style="font-size: 0.8rem; border: none;" onclick="location.reload()">🔄 รีเฟรชหน้าเว็บ</button>
-        </div>
+        <div id="st-box" class="status normal">✅ สัญญาณปกติ</div>
+        <input type="text" id="lcd-in" placeholder="พิมพ์ข้อความส่งหาจอ...">
+        <button class="btn-main" onclick="send()">📤 ส่งข้อความ</button>
+        <button class="btn-sub" onclick="reset()">🧹 ล้างหน้าจอ</button>
+        <button class="btn-sub" onclick="speak()">🔊 อ่านค่าอุณหภูมิ (ไทย)</button>
+        <button class="btn-sub" style="font-size: 0.8rem; border:none;" onclick="location.reload()">🔄 รีเฟรช</button>
     </div>
 </div>
 
@@ -63,45 +56,30 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
     let t = 0, h = 0;
 
-    // ระบบอ่านออกเสียง
-    window.speakNow = () => {
-        const msg = new SpeechSynthesisUtterance(`อุณหภูมิ ${t} องศา ความชื้น ${h} เปอร์เซ็นต์`);
-        msg.lang = 'th-TH';
-        window.speechSynthesis.speak(msg);
+    window.speak = () => {
+        const m = new SpeechSynthesisUtterance(`อุณหภูมิ ${t} องศาเซลเซียส ความชื้น ${h} เปอร์เซ็นต์ ค่ะ`);
+        m.lang = 'th-TH';
+        window.speechSynthesis.speak(m);
     };
 
-    // ฟังข้อมูลจากบอร์ด
-    onValue(ref(db, 'sensor'), (snap) => {
-        const d = snap.val();
+    onValue(ref(db, 'sensor'), (s) => {
+        const d = s.val();
         if(d) {
-            t = d.temperature.toFixed(1);
-            h = d.humidity.toFixed(0);
+            t = d.temperature.toFixed(1); h = d.humidity.toFixed(0);
             document.getElementById('temp').innerText = t;
             document.getElementById('humid').innerText = h;
-            
-            const st = document.getElementById('status-text');
-            st.innerText = d.object ? "⚠️ ตรวจพบการเคลื่อนไหว!" : "✅ ระบบปกติ";
-            st.className = d.object ? "status detected" : "status normal";
+            const b = document.getElementById('st-box');
+            b.innerText = d.object ? "⚠️ พบความเคลื่อนไหว!" : "✅ สัญญาณปกติ";
+            b.className = "status " + (d.object ? "detected" : "normal");
         }
     });
 
-    onValue(ref(db, 'time'), (snap) => {
-        if(snap.val()) document.getElementById('time-sync').innerText = "Last Update: " + snap.val();
-    });
+    onValue(ref(db, 'time'), (s) => { if(s.val()) document.getElementById('time').innerText = "Update: " + s.val(); });
 
-    // ฟังชันควบคุม
-    window.sendToLCD = () => {
-        const val = document.getElementById('lcd-msg').value;
-        if(val) set(ref(db, 'control/message'), val);
-    };
-    window.resetLCD = () => {
-        set(ref(db, 'control/message'), "");
-        set(ref(db, 'control/reset_lcd'), true);
-        document.getElementById('lcd-msg').value = "";
-    };
+    window.send = () => { const v = document.getElementById('lcd-in').value; if(v) set(ref(db, 'control/message'), v); };
+    window.reset = () => { set(ref(db, 'control/message'), ""); set(ref(db, 'control/reset_lcd'), true); document.getElementById('lcd-in').value = ""; };
 </script>
 </body>
 </html>
